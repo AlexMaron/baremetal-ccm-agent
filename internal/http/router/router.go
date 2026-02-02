@@ -1,10 +1,10 @@
 package router
 
 import (
-	"cccm-agent/internal/config"
-	"cccm-agent/internal/http/handlers/loadbalancer"
-	"cccm-agent/internal/nodewatcher"
-	"cccm-agent/internal/requests/haproxy"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/handlers/loadbalancer"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/requests/haproxy"
 	"context"
 	"log/slog"
 	"net"
@@ -31,7 +31,7 @@ func BuildRouter(
 		middleware.URLFormat,
 	)
 
-    authMiddleware := middleware.BasicAuth("cccm-agent", map[string]string{
+    authMiddleware := middleware.BasicAuth("github.com/AlexMaron/baremetal-ccm-agent", map[string]string{
         cfg.Auth.Username: cfg.Auth.Password,
     })
 

@@ -1,4 +1,4 @@
-module cccm-agent
+module github.com/AlexMaron/baremetal-ccm-agent
 
 go 1.25.0
 

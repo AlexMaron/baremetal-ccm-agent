@@ -1,7 +1,7 @@
 package loadbalancer
 
 import (
-	"cccm-agent/internal/requests/haproxy"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/requests/haproxy"
 	"context"
 )
 

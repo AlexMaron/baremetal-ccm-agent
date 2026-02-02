@@ -1,7 +1,7 @@
 package haproxy_test
 
 import (
-	"cccm-agent/internal/requests/haproxy"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/requests/haproxy"
 	"context"
 	"net/http"
 	"net/http/httptest"

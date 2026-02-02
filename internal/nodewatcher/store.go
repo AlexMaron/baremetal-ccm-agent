@@ -1,8 +1,8 @@
 package nodewatcher
 
 import (
-	"cccm-agent/internal/lib/logger/sl"
-	"cccm-agent/internal/requests/haproxy"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/requests/haproxy"
 	"context"
 	"fmt"
 	"log/slog"
