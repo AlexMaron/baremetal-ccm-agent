@@ -1,12 +1,12 @@
 package main
 
 import (
-	"cccm-agent/internal/config"
-	"cccm-agent/internal/http/router"
-	"cccm-agent/internal/lib/externalip"
-	"cccm-agent/internal/lib/logger/sl"
-	"cccm-agent/internal/nodewatcher"
-	"cccm-agent/internal/requests/haproxy"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/router"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/externalip"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"context"
 	"fmt"
 	"log/slog"
@@ -23,7 +23,7 @@ const (
 func main() {
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
-	log.Info("Starting cccm-agent", slog.String("env", cfg.Env))
+	log.Info("Starting github.com/AlexMaron/baremetal-ccm-agent", slog.String("env", cfg.Env))
 
 	haproxyClient := &haproxy.Client{
 		BaseURL: "http://localhost:5555",

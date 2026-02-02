@@ -1,10 +1,10 @@
 package loadbalancer
 
 import (
-	"cccm-agent/internal/lib/api/response"
-	"cccm-agent/internal/lib/logger/sl"
-	"cccm-agent/internal/nodewatcher"
-	"cccm-agent/internal/requests/haproxy"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/api/response"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"context"
 	"encoding/json"
 	"errors"

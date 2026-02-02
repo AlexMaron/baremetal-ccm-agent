@@ -1,7 +1,7 @@
 package externalip_test
 
 import (
-	"cccm-agent/internal/lib/externalip"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/externalip"
 	"net"
 	"testing"
 

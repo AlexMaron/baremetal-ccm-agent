@@ -1,9 +1,9 @@
 package loadbalancer_test
 
 import (
-	"cccm-agent/internal/http/handlers/loadbalancer"
-	"cccm-agent/internal/nodewatcher"
-	"cccm-agent/internal/requests/haproxy"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/handlers/loadbalancer"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"context"
 	"encoding/json"
 	"errors"

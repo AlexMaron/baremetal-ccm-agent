@@ -1,7 +1,7 @@
 package config_test
 
 import (
-	"cccm-agent/internal/config"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
 	"os"
 	"testing"
 	"time"
