@@ -2,7 +2,6 @@ package haproxy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,22 +15,21 @@ func (c *Client) CreateBackend(ctx context.Context, request BackendRequest) erro
 		return err
 	}
 
-	err = validateBackendByMode(&request)
-	if err != nil {
-		var vErr *ValidationError
-		if errors.As(err, &vErr) {
-			return vErr
-		}
-		return err
-	}
+    normalizer := BackendNormalizer{
+        rules: []BackendRule{
+            DefaultBackendModeRule,
+            TCPBalanceRule,
+            AdvCheckValidationRule,
+            DefaultServerValidateRule,
+        },
+    }
+    if err := normalizer.Normalize(&request); err != nil {
+        return err
+    }
 
 	body := request
 
 	c.bodyJSONLog(ctx, body)
-
-	if err := checkBackendBodyValues(body); err != nil {
-		return err
-	}
 
 	q := url.Values{}
 	q.Set("version", strconv.FormatInt(version, 10))
@@ -239,14 +237,16 @@ func (c *Client) CreateFrontend(ctx context.Context, body *FrontendRequest) erro
 		return err
 	}
 
-	err = validateFronend(body)
-	if err != nil {
-		var vErr *ValidationError
-		if errors.As(err, &vErr) {
-			return vErr
-		}
-		return err
-	}
+    normalizer := FrontendNormalizer{
+        rules: []FrontendRule{
+            DefaultFrontendModeRule,
+            ValidateFronend,
+        },
+    }
+    if err := normalizer.Normalize(body); err != nil {
+        return err
+    }
+
 	c.bodyJSONLog(ctx, body)
 
 	q := url.Values{}

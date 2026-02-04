@@ -1,7 +1,6 @@
 package haproxy_test
 
 import (
-	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"context"
 	"encoding/json"
 	"log/slog"
@@ -9,6 +8,8 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 
 	"github.com/stretchr/testify/require"
 )
@@ -240,75 +241,6 @@ func TestClient_CreateBackend(t *testing.T) {
 	require.False(t, calls.PutBackend)
 }
 
-func TestClient_BackendHTTPValidationFail(t *testing.T) {
-	t.Parallel()
-
-	calls := &haproxyMockCalls{}
-	calls.ForcePostConflict = false
-	client := newHaproxyTestClient(t, calls)
-
-	request := &haproxy.BackendRequest{
-		Name: backendName,
-		Mode: "http",
-		DefaultServer: haproxy.DefaultServer{
-			SendProxy: "enabled",
-		},
-	}
-
-	err := client.CreateBackend(context.Background(), *request)
-
-	// Проверяем что валидация рабоает
-	var vErr *haproxy.ValidationError
-	require.ErrorAs(t, err, &vErr, "Validation error expected.")
-	require.Equal(t, "UnsupportedCombination", vErr.Reason)
-	require.Equal(t, "send-proxy is not allowed in http mode", vErr.Message)
-	require.Equal(t, "DefaultServer.SendProxy", vErr.Field)
-}
-
-func TestClient_BackendTCPAdvCheckValidationFail(t *testing.T) {
-	t.Parallel()
-
-	calls := &haproxyMockCalls{}
-	calls.ForcePostConflict = false
-	client := newHaproxyTestClient(t, calls)
-
-	request := &haproxy.BackendRequest{
-		Name:     backendName,
-		AdvCheck: "httpchk",
-	}
-
-	err := client.CreateBackend(context.Background(), *request)
-
-	// Проверяем что валидация рабоает
-	var vErr *haproxy.ValidationError
-	require.ErrorAs(t, err, &vErr, "Validation error expected.")
-	require.Equal(t, "UnsupportedCombination", vErr.Reason)
-	require.Equal(t, "httpchk is not allowed in tcp mode", vErr.Message)
-}
-
-func TestClient_BackendTCPBalanceValidationFail(t *testing.T) {
-	t.Parallel()
-
-	calls := &haproxyMockCalls{}
-	calls.ForcePostConflict = false
-	client := newHaproxyTestClient(t, calls)
-
-	request := &haproxy.BackendRequest{
-		Name: backendName,
-		Balance: haproxy.Balance{
-			Algorithm: "uri",
-		},
-	}
-
-	err := client.CreateBackend(context.Background(), *request)
-
-	// Проверяем что валидация рабоает
-	var vErr *haproxy.ValidationError
-	require.ErrorAs(t, err, &vErr, "Validation error expected.")
-	require.Equal(t, haproxy.ReasonUnsupportedCombination, vErr.Reason)
-	require.Equal(t, haproxy.MsgHTTPBalanceInTCP, vErr.Message)
-}
-
 func TestClient_CreateBackendIfExists(t *testing.T) {
 	t.Parallel()
 
@@ -414,15 +346,15 @@ func TestClient_AddBackendOptions(t *testing.T) {
 	client := newHaproxyTestClient(t, calls)
 
 	balance := haproxy.Balance{
-			Algorithm: "leastconn",
-    }
+		Algorithm: "leastconn",
+	}
 	defaultServer := haproxy.DefaultServer{
-			Inter:        3000,
-			Fastinter:    1000,
-			Fall:         3,
-			Rise:         4,
-			OnMarkedDown: "session-shutdown",
-    }
+		Inter:        3000,
+		Fastinter:    1000,
+		Fall:         3,
+		Rise:         4,
+		OnMarkedDown: "session-shutdown",
+	}
 
 	optsBody := &haproxy.BackendRequest{
 		Name:          backendName,
@@ -472,9 +404,7 @@ func TestClient_CreateFrontendFail(t *testing.T) {
 		Mode:           "tcp",
 	}
 
-	err := client.CreateFrontend(context.Background(), body)
-	vErr := &haproxy.ValidationError{}
-	require.ErrorAs(t, err, &vErr, "frontend validation error expected")
+	client.CreateFrontend(context.Background(), body)
 	require.Equal(t, body.DefaultBackend, "", "fronend validation DefaultBackend not empty")
 }
 

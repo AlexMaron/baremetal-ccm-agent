@@ -1,70 +1,35 @@
 package config_test
 
 import (
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
-	"os"
 	"testing"
 	"time"
+
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMustLoad_Success(t *testing.T) {
-	yaml := `
-env: dev
-kubeconfig: kubeconfig
-externalIP:
-  iface: eth0
-auth:
-  username: user
-  password: pass
-haproxy_auth:
-  username: haproxy
-  password: secret
-haproxy_defaults:
-  default_server:
-    inter: 3
-    fastinter: 1
-    fall: 3
-    rise: 2
-    on-marked-down: shutdown-sessions
-  balance:
-    algorithm: roundrobin
-  `
+    t.Setenv("ENV", "dev")
+	t.Setenv("HTTP_ADDRESS", "localhost:8082")
+	t.Setenv("HTTP_TIMEOUT", "4s")
+	t.Setenv("HTTP_IDLE_TIMEOUT", "60s")
+	t.Setenv("KUBECONFIG", "kubeconfig")
+	t.Setenv("DATA_PLANE_HOSTS", "127.0.0.1,127.0.0.2")
+	t.Setenv("USERNAME", "user")
+	t.Setenv("PASSWORD", "pass")
+	t.Setenv("DATA_PLANE_USERNAME", "haproxy")
+	t.Setenv("DATA_PLANE_PASSWORD", "secret")
 
-	file, err := os.CreateTemp("", "config-*.yaml")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
-	}
-	defer os.Remove(file.Name())
+    cfg := config.MustLoad()
 
-	if _, err := file.WriteString(yaml); err != nil {
-		t.Fatalf("failed to write temp file: %v", err)
-	}
-	file.Close()
-
-	// Переопределяем аргументы командной строки
-	os.Args = []string{"cmd", "--config", file.Name()}
-
-	cfg := config.MustLoad()
-
-	if cfg.Env != "dev" {
-		t.Errorf("expected Env=dev, got %s", cfg.Env)
-	}
-
-	if cfg.HTTPServer.Timeout != 4*time.Second {
-		t.Errorf("expected Timeout=4s, got %s", cfg.HTTPServer.Timeout)
-	}
-
-	// Проверяем, что дефолтные значения установлены
-	env := "dev"
-	if cfg.Env != env {
-		t.Errorf("expected default Env=%s, got %s", env, cfg.Env)
-	}
-	address := "localhost:8082"
-	if cfg.HTTPServer.Address != address {
-		t.Errorf("expected default Address=%s, got %s", address, cfg.HTTPServer.Address)
-	}
-	timeout := 4 * time.Second
-	if cfg.HTTPServer.Timeout != timeout {
-		t.Errorf("expected default Timeout=%s, got %s", timeout, cfg.HTTPServer.Timeout)
-	}
+    require.Equal(t, "dev", cfg.Env)
+    require.Equal(t, "localhost:8082", cfg.HTTPAddress)
+    require.Equal(t, 4 * time.Second, cfg.HTTPTimeout)
+    require.Equal(t, 60 * time.Second, cfg.HTTPIdleTimeout)
+    require.Equal(t, "kubeconfig", cfg.Kubeconfig)
+    require.Equal(t, []string{"127.0.0.1", "127.0.0.2"}, cfg.DataPlaneHosts)
+    require.Equal(t, "user", cfg.Username)
+    require.Equal(t, "pass", cfg.Password)
+    require.Equal(t, "haproxy", cfg.DataPlaneUsername)
+    require.Equal(t, "secret", cfg.DataPlanePassword)
 }

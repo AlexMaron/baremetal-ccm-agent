@@ -3,12 +3,12 @@ module github.com/AlexMaron/baremetal-ccm-agent
 go 1.25.0
 
 require (
-	github.com/alexflint/go-arg v1.6.0
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/go-chi/render v1.0.3
 	github.com/go-playground/validator/v10 v10.29.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/stretchr/testify v1.11.1
+	golang.org/x/tools v0.38.0
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
 	k8s.io/client-go v0.35.0
@@ -18,7 +18,6 @@ require (
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/ajg/form v1.5.1 // indirect
-	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect

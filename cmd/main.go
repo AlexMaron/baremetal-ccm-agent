@@ -1,18 +1,20 @@
 package main
 
 import (
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/router"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/externalip"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
-	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/router"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/externalip"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/fanout"
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 )
 
 const (
@@ -25,52 +27,51 @@ func main() {
 	log := setupLogger(cfg.Env)
 	log.Info("Starting github.com/AlexMaron/baremetal-ccm-agent", slog.String("env", cfg.Env))
 
-	haproxyClient := &haproxy.Client{
-		BaseURL: "http://localhost:5555",
-		HTTPClient: &http.Client{
-			Timeout: 10 * time.Second,
-		},
-		Username: cfg.HaproxyAuth.Username,
-		Password: cfg.HaproxyAuth.Password,
-		Log:      setupLogger(cfg.Env),
+	if err := run(context.Background(), cfg, log); err != nil {
+		log.Error("Agent stopped with error", sl.Err(err))
+		os.Exit(1)
 	}
-
-    if err := run(context.Background(), cfg, log, haproxyClient); err != nil {
-        log.Error("Agent stopped with error", sl.Err(err))
-        os.Exit(1)
-    }
 }
 
-func run(ctx context.Context, cfg *config.Config, log *slog.Logger, haproxyClient *haproxy.Client) error {
+func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 	externalIP, err := externalip.GetExternalIP()
-    if err != nil {
-        return fmt.Errorf("failed to get external IP: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to get external IP: %w", err)
+	}
+
+    reader := haproxyClient(cfg.DataPlaneHosts[0], *cfg)
+    var writers []haproxy.API
+    for _, host := range cfg.DataPlaneHosts {
+        c := haproxyClient(host, *cfg)
+        writers = append(writers, c)
     }
 
-	nodeStore := nodewatcher.NewStore(log)
-	stopCh := nodewatcher.StartWatcher(ctx, cfg.Kubeconfig, nodeStore.HandleNode, haproxyClient)
+    fanout := fanout.NewFanoutClient(writers, 3, time.Second)
 
-    router := router.BuildRouter(ctx, log, externalIP, nodeStore, haproxyClient, cfg)
+	nodeStore := nodewatcher.NewStore(log, reader, fanout)
+	stopCh := nodewatcher.StartWatcher(ctx, cfg.Kubeconfig, nodeStore.HandleNode, reader, fanout)
+
+	router := router.BuildRouter(ctx, log, externalIP, nodeStore, fanout, cfg)
 
 	srv := &http.Server{
-		Addr:         cfg.HTTPServer.Address,
+		Addr:         cfg.HTTPAddress,
 		Handler:      router,
-		ReadTimeout:  cfg.HTTPServer.Timeout,
-		WriteTimeout: cfg.HTTPServer.Timeout,
-		IdleTimeout:  cfg.HTTPServer.Idle_timeout,
+		ReadTimeout:  cfg.HTTPTimeout,
+		WriteTimeout: cfg.HTTPTimeout,
+		IdleTimeout:  cfg.HTTPIdleTimeout,
 	}
 
 	go func() {
-		log.Info("HTTP server starting", slog.String("addr", cfg.HTTPServer.Address))
+		log.Info("HTTP server starting", slog.String("addr", cfg.HTTPAddress))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-            log.Error("HTTP server failed", sl.Err(err))
+			log.Error("HTTP server failed", sl.Err(err))
 		}
 	}()
 
-    select {
-    case <-ctx.Done():
-    case <-stopCh:
-    }
+	select {
+	case <-ctx.Done():
+	case <-stopCh:
+	}
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -79,8 +80,22 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger, haproxyClien
 	}
 
 	log.Info("Agent stopped gracefully")
-    return nil
+	return nil
 }
+
+func haproxyClient(baseURL string, cfg config.Config) *haproxy.Client {
+	return &haproxy.Client{
+		BaseURL: "http://localhost:5555",
+		HTTPClient: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+		Username: cfg.DataPlaneUsername,
+		Password: cfg.DataPlanePassword,
+		Log:      setupLogger(cfg.Env),
+	}
+
+}
+
 
 func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger

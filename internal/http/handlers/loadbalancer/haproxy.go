@@ -1,11 +1,11 @@
 package loadbalancer
 
 import (
-	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"context"
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 )
 
-type HAProxyAPI interface {
+type HAProxyWriter interface {
 	CreateBackend(ctx context.Context, request haproxy.BackendRequest) error
 	AddBackendServer(ctx context.Context, backendName string, body haproxy.ServerRequest) error
 	AddBackendOptions(ctx context.Context, backendName string, opts any) error
@@ -13,4 +13,9 @@ type HAProxyAPI interface {
 	AddFrontendBinds(ctx context.Context, frontendName string, body haproxy.FrontendBindRequest) error
 	DeleteBackend(ctx context.Context, name string) error
 	DeleteFrontend(ctx context.Context, name string) error
+    DeleteBackendServer(ctx context.Context, backendName, serverName string) error
+}
+
+type HAProxyReader interface {
+    GetBackendNames(ctx context.Context) ([]string, error)
 }

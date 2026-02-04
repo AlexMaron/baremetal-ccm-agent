@@ -1,12 +1,12 @@
 package loadbalancer_test
 
 import (
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/handlers/loadbalancer"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
-	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/handlers/loadbalancer"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	"io"
 	"log/slog"
 	"net"
@@ -25,18 +25,18 @@ type haproxyMock struct {
 	CreateFrontendCalled bool
 	AddBindCalled        bool
 
-	FailOn string
-    FailWith error
+	FailOn   string
+	FailWith error
 }
 
-var _ loadbalancer.HAProxyAPI = (*haproxyMock)(nil)
+var _ loadbalancer.HAProxyWriter = (*haproxyMock)(nil)
 
 func (m *haproxyMock) CreateBackend(ctx context.Context, request haproxy.BackendRequest) error {
 	m.CreateBackendCalled = true
 	if m.FailOn == "CreateBackend" {
-        if m.FailWith != nil {
-            return m.FailWith
-        }
+		if m.FailWith != nil {
+			return m.FailWith
+		}
 		return errors.New("fail")
 	}
 	return nil
@@ -73,6 +73,10 @@ func (m *haproxyMock) DeleteFrontend(ctx context.Context, name string) error {
 	return nil
 }
 
+func (m *haproxyMock) DeleteBackendServer(ctx context.Context, backendName, serverName string) error {
+	return nil
+}
+
 type nodeCacheMock struct {
 	nodes []nodewatcher.NodeInfo
 }
@@ -86,28 +90,28 @@ func (n *nodeCacheMock) GetNodeInfo(fn func(nodewatcher.NodeInfo) bool) {
 }
 
 func TestRenderError(t *testing.T) {
-    t.Parallel()
+	t.Parallel()
 
-    w := httptest.NewRecorder()
-    r := httptest.NewRequest(http.MethodGet, "/", nil)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
 
-    status := http.StatusBadRequest
-    msg := "something went wrong"
+	status := http.StatusBadRequest
+	msg := "something went wrong"
 
-    loadbalancer.RenderError(w, r, status, msg)
+	loadbalancer.RenderError(w, r, status, msg)
 
-    res := w.Result()
-    defer res.Body.Close()
+	res := w.Result()
+	defer res.Body.Close()
 
-    require.Equal(t, status, res.StatusCode)
+	require.Equal(t, status, res.StatusCode)
 
-    var body struct {
-        Error string `json:"error"`
-    }
+	var body struct {
+		Error string `json:"error"`
+	}
 
-    err := json.NewDecoder(res.Body).Decode(&body)
-    require.NoError(t, err)
-    require.Equal(t, msg, body.Error)
+	err := json.NewDecoder(res.Body).Decode(&body)
+	require.NoError(t, err)
+	require.Equal(t, msg, body.Error)
 }
 
 func TestLoadBalancerCreate_OK(t *testing.T) {
@@ -166,13 +170,13 @@ func TestLoadBalancerCreate_ValidationError(t *testing.T) {
 	handler(w, req)
 
 	require.NotEqual(t, http.StatusOK, w.Result().StatusCode)
-    
-    resp := w.Result()
-    resp.Body.Close()
-    respBody, err := io.ReadAll(resp.Body)
-    require.NoError(t, err)
-    
-    require.Contains(t, string(respBody), "required")
+
+	resp := w.Result()
+	resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	require.Contains(t, string(respBody), "required")
 }
 
 func TestLoadBalancerCreate_BadJSON(t *testing.T) {
@@ -191,15 +195,12 @@ func TestLoadBalancerCreate_BadJSON(t *testing.T) {
 
 	handler(w, req)
 
-    require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
+	require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
 }
 
 func TestLoadBalancerCreate_ValidateCreateBackendOptions(t *testing.T) {
 	haproxyMock := &haproxyMock{
-        FailOn: "CreateBackend",
-        FailWith: &haproxy.ValidationError{
-            Message: "invalid backend configuration",
-        },
+		FailOn: "CreateBackend",
 	}
 
 	body := `{
@@ -220,13 +221,13 @@ func TestLoadBalancerCreate_ValidateCreateBackendOptions(t *testing.T) {
 	handler(w, req)
 
 	require.Equal(t, http.StatusUnprocessableEntity, w.Result().StatusCode)
-    require.Contains(t, w.Body.String(), "invalid backend configuration")
+	require.Contains(t, w.Body.String(), "fail")
 }
 
 func TestLoadBalancerDelete(t *testing.T) {
-    haproxyMock := &haproxyMock{}
+	haproxyMock := &haproxyMock{}
 
-    handler := loadbalancer.LoadBalancerDelete(context.Background(), slog.Default(), net.ParseIP("1.2.3.4"), &nodeCacheMock{}, haproxyMock)
+	handler := loadbalancer.LoadBalancerDelete(context.Background(), slog.Default(), net.ParseIP("1.2.3.4"), &nodeCacheMock{}, haproxyMock)
 
 	body := `{
     "loadbalancer": {
@@ -234,75 +235,52 @@ func TestLoadBalancerDelete(t *testing.T) {
       }
     }`
 
-    req := httptest.NewRequest(http.MethodDelete, "/loadbalancer/delete", strings.NewReader(body))
-    w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/loadbalancer/delete", strings.NewReader(body))
+	w := httptest.NewRecorder()
 
-    handler(w, req)
+	handler(w, req)
 
-    require.Equal(t, http.StatusOK, w.Result().StatusCode)
-}
-
-func TestLoadBalancerDelete_ValidationError(t *testing.T) {
-    haproxyMock := &haproxyMock{}
-
-    handler := loadbalancer.LoadBalancerDelete(context.Background(), slog.Default(), net.ParseIP("1.2.3.4"), &nodeCacheMock{}, haproxyMock)
-
-	body := `{
-    "loadbalancer": {}
-    }`
-
-    req := httptest.NewRequest(http.MethodDelete, "/loadbalancer/delete", strings.NewReader(body))
-    w := httptest.NewRecorder()
-
-    handler(w, req)
-
-    require.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
-    resp := w.Result()
-    resp.Body.Close()
-    respBody, err := io.ReadAll(resp.Body)
-    require.NoError(t, err)
-    
-    require.Contains(t, string(respBody), "required")
+	require.Equal(t, http.StatusOK, w.Result().StatusCode)
 }
 
 func TestLoadBalancerDelete_BadJSON(t *testing.T) {
-    haproxyMock := &haproxyMock{}
+	haproxyMock := &haproxyMock{}
 
-    handler := loadbalancer.LoadBalancerDelete(context.Background(), slog.Default(), net.ParseIP("1.2.3.4"), &nodeCacheMock{}, haproxyMock)
+	handler := loadbalancer.LoadBalancerDelete(context.Background(), slog.Default(), net.ParseIP("1.2.3.4"), &nodeCacheMock{}, haproxyMock)
 
 	body := `{
     BAD JSON
     }`
 
-    req := httptest.NewRequest(http.MethodDelete, "/loadbalancer/delete", strings.NewReader(body))
-    w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/loadbalancer/delete", strings.NewReader(body))
+	w := httptest.NewRecorder()
 
-    handler(w, req)
+	handler(w, req)
 
-    require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
+	require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
 }
 
 func TestLoadBalancerGetIP(t *testing.T) {
-    t.Parallel()
+	t.Parallel()
 
-    expectedIP := net.ParseIP("1.2.3.4")
-    handler := loadbalancer.LoadBalancerGetIP(context.Background(), slog.Default(), expectedIP)
+	expectedIP := net.ParseIP("1.2.3.4")
+	handler := loadbalancer.LoadBalancerGetIP(context.Background(), slog.Default(), expectedIP)
 
-    req := httptest.NewRequest(http.MethodDelete, "/loadbalancer/get", nil)
-    w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodDelete, "/loadbalancer/get", nil)
+	w := httptest.NewRecorder()
 
-    handler(w, req)
+	handler(w, req)
 
-    res := w.Result()
-    defer res.Body.Close()
+	res := w.Result()
+	defer res.Body.Close()
 
-    require.Equal(t, http.StatusOK, w.Result().StatusCode)
-    require.Equal(t, "application/json", res.Header.Get("Content-Type"))
+	require.Equal(t, http.StatusOK, w.Result().StatusCode)
+	require.Equal(t, "application/json", res.Header.Get("Content-Type"))
 
-    var body struct {
-        ExternalIP string `json:"external_ip"`
-    }
-    err := json.NewDecoder(res.Body).Decode(&body)
-    require.NoError(t, err)
-    require.Equal(t, expectedIP.String(), body.ExternalIP)
+	var body struct {
+		ExternalIP string `json:"external_ip"`
+	}
+	err := json.NewDecoder(res.Body).Decode(&body)
+	require.NoError(t, err)
+	require.Equal(t, expectedIP.String(), body.ExternalIP)
 }

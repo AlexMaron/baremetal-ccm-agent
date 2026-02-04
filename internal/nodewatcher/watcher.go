@@ -7,6 +7,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -16,28 +17,28 @@ import (
 	"k8s.io/klog/v2"
 )
 
-func StartWatcherWithClient(ctx context.Context, clientset kubernetes.Interface, handler NodeHandlerFunc, haproxyClient HAProxyAPI) <-chan struct{} {
-    stopCh := setupSignalHandler()
-    createNodeInformer(ctx, clientset, stopCh, handler, haproxyClient)
-    return stopCh
+func StartWatcherWithClient(ctx context.Context, clientset kubernetes.Interface, handler NodeHandlerFunc, haproxyReader haproxy.API, haproxyWriter HAProxyWriter) <-chan struct{} {
+	stopCh := setupSignalHandler()
+	createNodeInformer(ctx, clientset, stopCh, handler, haproxyReader, haproxyWriter)
+	return stopCh
 }
 
-func StartWatcher(ctx context.Context, kubeconfigPath string, handler NodeHandlerFunc, haproxyClient HAProxyAPI) <-chan struct{} {
+func StartWatcher(ctx context.Context, kubeconfigPath string, handler NodeHandlerFunc, haproxyReader haproxy.API, haproxyWriter HAProxyWriter) <-chan struct{} {
 	clientset := createClientSet(kubeconfigPath)
-	return StartWatcherWithClient(ctx, clientset, handler, haproxyClient)
+	return StartWatcherWithClient(ctx, clientset, handler, haproxyReader, haproxyWriter)
 }
 
 func createClientSet(kubeconfigPath string) kubernetes.Interface {
-    var (
-        restConfig *rest.Config
-        err error
-    )
+	var (
+		restConfig *rest.Config
+		err        error
+	)
 
-    if kubeconfigPath != "" {
-        restConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-    } else {
-        restConfig, err = rest.InClusterConfig()
-    }
+	if kubeconfigPath != "" {
+		restConfig, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
+	} else {
+		restConfig, err = rest.InClusterConfig()
+	}
 
 	if err != nil {
 		klog.Fatalf("failed to get rest config: %v", err)
@@ -51,41 +52,41 @@ func createClientSet(kubeconfigPath string) kubernetes.Interface {
 	return clientset
 }
 
-func handleNode(ctx context.Context, obj any, handler NodeHandlerFunc, haproxyClient HAProxyAPI) {
-    node, ok := obj.(*v1.Node)
-    if !ok {
-        return
-    }
+func handleNode(ctx context.Context, obj any, handler NodeHandlerFunc, haproxyReader haproxy.API, haproxyWriter HAProxyWriter) {
+	node, ok := obj.(*v1.Node)
+	if !ok {
+		return
+	}
 
-    if _, isControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]; isControlPlane {
-        return
-    }
+	if _, isControlPlane := node.Labels["node-role.kubernetes.io/control-plane"]; isControlPlane {
+		return
+	}
 
-    ip := ""
-    for _, addr := range node.Status.Addresses {
-        if addr.Type == v1.NodeInternalIP {
-            ip = addr.Address
-            break
-        }
-    }
-	handler(ctx, node.Name, ip, node, haproxyClient)
+	ip := ""
+	for _, addr := range node.Status.Addresses {
+		if addr.Type == v1.NodeInternalIP {
+			ip = addr.Address
+			break
+		}
+	}
+	handler(ctx, node.Name, ip, node, haproxyReader, haproxyWriter)
 }
 
-func createNodeInformer(ctx context.Context, clientset kubernetes.Interface, stopCh <-chan struct{}, handler NodeHandlerFunc, haproxyClient HAProxyAPI) cache.SharedIndexInformer {
+func createNodeInformer(ctx context.Context, clientset kubernetes.Interface, stopCh <-chan struct{}, handler NodeHandlerFunc, haproxyReader haproxy.API, haproxyWriter HAProxyWriter) cache.SharedIndexInformer {
 	informerFactory := informers.NewSharedInformerFactory(clientset, 30*time.Second)
 	nodeInformer := informerFactory.Core().V1().Nodes().Informer()
 
 	nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj any) {
-            handleNode(ctx, obj, handler, haproxyClient)
+			handleNode(ctx, obj, handler, haproxyReader, haproxyWriter)
 			logNode("ADD", obj)
 		},
 		UpdateFunc: func(oldObj, newObj any) {
-            handleNode(ctx, newObj, handler, haproxyClient)
+			handleNode(ctx, newObj, handler, haproxyReader, haproxyWriter)
 			logNodeUpdate(oldObj, newObj)
 		},
 		DeleteFunc: func(obj any) {
-            handleNode(ctx, obj, handler, haproxyClient)
+			handleNode(ctx, obj, handler, haproxyReader, haproxyWriter)
 			logNode("DELETE", obj)
 		},
 	})

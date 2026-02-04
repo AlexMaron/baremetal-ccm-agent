@@ -1,16 +1,15 @@
 package loadbalancer
 
 import (
+	"context"
+	"log/slog"
+	"net"
+	"net/http"
+
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/api/response"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
 	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
-	"context"
-	"encoding/json"
-	"errors"
-	"log/slog"
-	"net"
-	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -22,11 +21,11 @@ type NodeSource interface {
 }
 
 type LoadBalancerCreateRequest struct {
-    Name     string                        `json:"name" validate:"required"`
-	Port     int32                         `json:"port" validate:"required"`
-	NodePort int32                         `json:"node_port" validate:"required"`
-	Backend  haproxy.BackendRequest        `json:"backend" validate:"required"`
-	Frontend haproxy.FrontendRequest       `json:"frontend" validate:"required"`
+	Name     string                  `json:"name" validate:"required"`
+	Port     int32                   `json:"port" validate:"required"`
+	NodePort int32                   `json:"node_port" validate:"required"`
+	Backend  haproxy.BackendRequest  `json:"backend" validate:"required"`
+	Frontend haproxy.FrontendRequest `json:"frontend" validate:"required"`
 }
 
 type CreateRequest struct {
@@ -34,7 +33,7 @@ type CreateRequest struct {
 }
 
 type LoadBalancerDeleteRequest struct {
-    Name     string                        `json:"name" validate:"required"`
+	Name string `json:"name" validate:"required"`
 }
 
 type DeleteRequest struct {
@@ -51,7 +50,7 @@ func RenderError(w http.ResponseWriter, r *http.Request, status int, msg string)
 	render.JSON(w, r, response.Error(msg))
 }
 
-func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net.IP, nodesCache nodewatcher.NodeCache, haproxyClient HAProxyAPI) http.HandlerFunc {
+func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net.IP, nodesCache nodewatcher.NodeCache, haproxyClient HAProxyWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.loadbalancer.NewLoadBalancerCreate"
 		log.With(
@@ -75,7 +74,7 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 			validateErr := err.(validator.ValidationErrors)
 			log.Error("invalid request", sl.Err(err))
 
-            render.Status(r, http.StatusBadRequest)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ValidateError(validateErr))
 
 			return
@@ -83,15 +82,8 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 
 		if err := haproxyClient.CreateBackend(ctx, req.LB.Backend); err != nil {
 			log.Info("HAProxy error", sl.Err(err))
-			var vErr *haproxy.ValidationError
-			if errors.As(err, &vErr) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnprocessableEntity)
-				if err := json.NewEncoder(w).Encode(vErr); err != nil {
-					log.Error("failed to encode response", sl.Err(err))
-				}
-                return
-			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnprocessableEntity)
 			RenderError(w, r, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -145,7 +137,7 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 	}
 }
 
-func LoadBalancerDelete(ctx context.Context, log *slog.Logger, externalIP net.IP, nodesCache nodewatcher.NodeCache, haproxyClient HAProxyAPI) http.HandlerFunc {
+func LoadBalancerDelete(ctx context.Context, log *slog.Logger, externalIP net.IP, nodesCache nodewatcher.NodeCache, haproxyClient HAProxyWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const op = "handlers.loadbalancer.LoadBalancerDelete"
 		log.With(
@@ -169,7 +161,7 @@ func LoadBalancerDelete(ctx context.Context, log *slog.Logger, externalIP net.IP
 			validateErr := err.(validator.ValidationErrors)
 			log.Error("invalid request", sl.Err(err))
 
-            render.Status(r, http.StatusBadRequest)
+			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ValidateError(validateErr))
 
 			return
