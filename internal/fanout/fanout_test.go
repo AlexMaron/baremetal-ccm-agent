@@ -31,16 +31,16 @@ func (m *mockHaproxyAPI) GetBackendNames(ctx context.Context) ([]string, error) 
 	return []string{"backend1", "backend2"}, nil
 }
 
-func (m *mockHaproxyAPI) GetBackendServers(ctx context.Context, backendName string) ([]haproxy.ServerRequest, error) {
+func (m *mockHaproxyAPI) GetBackendServers(ctx context.Context, backendName string) (*[]haproxy.ServerRequest, error) {
 	m.calls["GetBackendServers"]++
 	if m.failures["GetBackendServers"] > 0 {
 		m.failures["GetBackendServers"]--
 		return nil, errors.New("fail")
 	}
-	return []haproxy.ServerRequest{{Name: "server1"}}, nil
+	return &[]haproxy.ServerRequest{{Name: "server1"}}, nil
 }
 
-func (m *mockHaproxyAPI) CreateBackend(ctx context.Context, req haproxy.BackendRequest) error {
+func (m *mockHaproxyAPI) CreateBackend(ctx context.Context, req *haproxy.BackendRequest) error {
 	m.calls["CreateBackend"]++
 	if m.failures["CreateBackend"] > 0 {
 		m.failures["CreateBackend"]--
@@ -49,7 +49,7 @@ func (m *mockHaproxyAPI) CreateBackend(ctx context.Context, req haproxy.BackendR
 	return nil
 }
 
-func (m *mockHaproxyAPI) AddBackendServer(ctx context.Context, backendName string, body haproxy.ServerRequest) error {
+func (m *mockHaproxyAPI) AddBackendServer(ctx context.Context, backendName string, body *haproxy.ServerRequest) error {
 	m.calls["AddBackendServer"]++
 	if m.failures["AddBackendServer"] > 0 {
 		m.failures["AddBackendServer"]--
@@ -75,7 +75,7 @@ func (m *mockHaproxyAPI) CreateFrontend(ctx context.Context, body *haproxy.Front
 	return nil
 }
 
-func (m *mockHaproxyAPI) AddFrontendBinds(ctx context.Context, frontendName string, body haproxy.FrontendBindRequest) error {
+func (m *mockHaproxyAPI) AddFrontendBinds(ctx context.Context, frontendName string, body *haproxy.FrontendBindRequest) error {
 	m.calls["AddFrontendBinds"]++
 	if m.failures["AddFrontendBinds"] > 0 {
 		m.failures["AddFrontendBinds"]--
@@ -120,7 +120,7 @@ func TestFanoutClient_Success(t *testing.T) {
 
 	client := NewFanoutClient([]haproxy.API{m1, m2}, 2, 1*time.Millisecond)
 
-	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "test"})
+	err := client.CreateBackend(ctx, &haproxy.BackendRequest{Name: "test"})
 
 	require.NoError(t, err)
 	require.Equal(t, 1, m1.calls["CreateBackend"])
@@ -134,7 +134,7 @@ func TestFanoutClient_Retry(t *testing.T) {
 
 	client := NewFanoutClient([]haproxy.API{m}, 3, 1*time.Millisecond)
 
-	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "retry-test"})
+	err := client.CreateBackend(ctx, &haproxy.BackendRequest{Name: "retry-test"})
 
 	require.NoError(t, err)
 	require.Equal(t, 3, m.calls["CreateBackend"])
@@ -147,7 +147,7 @@ func TestFanoutClient_FailureAfterRetries(t *testing.T) {
 
 	client := NewFanoutClient([]haproxy.API{m}, 3, 1*time.Millisecond)
 
-	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "fail-test"})
+	err := client.CreateBackend(ctx, &haproxy.BackendRequest{Name: "fail-test"})
 
 	require.Error(t, err)
 	require.Equal(t, 4, m.calls["CreateBackend"])
@@ -162,7 +162,7 @@ func TestFanoutClient_MultipleClientRetry(t *testing.T) {
 
 	client := NewFanoutClient([]haproxy.API{m1, m2}, 2, 1*time.Millisecond)
 
-	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "multi-client"})
+	err := client.CreateBackend(ctx, &haproxy.BackendRequest{Name: "multi-client"})
 
 	require.NoError(t, err)
 	require.Equal(t, 2, m1.calls["CreateBackend"])

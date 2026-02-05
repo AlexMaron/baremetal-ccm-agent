@@ -80,7 +80,7 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 			return
 		}
 
-		if err := haproxyClient.CreateBackend(ctx, req.LB.Backend); err != nil {
+		if err := haproxyClient.CreateBackend(ctx, &req.LB.Backend); err != nil {
 			log.Info("HAProxy error", sl.Err(err))
 			w.Header().Set("Content-Type", "application/json")
 			RenderError(w, r, http.StatusInternalServerError, err.Error())
@@ -94,7 +94,7 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 				Port:    req.LB.NodePort,
 				Check:   haproxy.ServerCheckEnabled,
 			}
-			if err := haproxyClient.AddBackendServer(ctx, req.LB.Backend.Name, *serverBody); err != nil {
+			if err := haproxyClient.AddBackendServer(ctx, req.LB.Backend.Name, serverBody); err != nil {
 				log.Info("HAProxy error", sl.Err(err))
 				RenderError(w, r, http.StatusInternalServerError, err.Error())
 				return false
@@ -121,7 +121,7 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 			Address: "*",
 			Port:    req.LB.Port,
 		}
-		if err := haproxyClient.AddFrontendBinds(ctx, req.LB.Frontend.Name, *bindBody); err != nil {
+		if err := haproxyClient.AddFrontendBinds(ctx, req.LB.Frontend.Name, bindBody); err != nil {
 			log.Info("HAProxy error", sl.Err(err))
 			RenderError(w, r, http.StatusInternalServerError, err.Error())
 			return

@@ -22,7 +22,7 @@ type MockHAProxyAPI struct {
 	AddedServers []haproxy.ServerRequest
 }
 
-func (m *MockHAProxyAPI) CreateBackend(ctx context.Context, request haproxy.BackendRequest) error {
+func (m *MockHAProxyAPI) CreateBackend(ctx context.Context, request *haproxy.BackendRequest) error {
 	args := m.Called(ctx, request)
 	return args.Error(0)
 }
@@ -32,8 +32,8 @@ func (m *MockHAProxyAPI) CreateFrontend(ctx context.Context, body *haproxy.Front
 	return args.Error(0)
 }
 
-func (m *MockHAProxyAPI) AddServer(ctx context.Context, backend string, server haproxy.ServerRequest) error {
-	m.AddedServers = append(m.AddedServers, server)
+func (m *MockHAProxyAPI) AddServer(ctx context.Context, backend string, server *haproxy.ServerRequest) error {
+	m.AddedServers = append(m.AddedServers, *server)
 	return nil
 }
 
@@ -52,8 +52,8 @@ func (m *MockHAProxyAPI) DeleteBackendServer(ctx context.Context, backend, serve
 	return args.Error(0)
 }
 
-func (m *MockHAProxyAPI) AddBackendServer(ctx context.Context, backend string, body haproxy.ServerRequest) error {
-	args := m.Called(ctx, backend, body)
+func (m *MockHAProxyAPI) AddBackendServer(ctx context.Context, backend string, body *haproxy.ServerRequest) error {
+	args := m.Called(ctx, backend, *body)
 	return args.Error(0)
 }
 
@@ -67,18 +67,18 @@ func (m *MockHAProxyAPI) AddBackendOptions(ctx context.Context, backendName stri
 	return args.Error(0)
 }
 
-func (m *MockHAProxyAPI) AddFrontendBinds(ctx context.Context, frontendName string, body haproxy.FrontendBindRequest) error {
+func (m *MockHAProxyAPI) AddFrontendBinds(ctx context.Context, frontendName string, body *haproxy.FrontendBindRequest) error {
 	args := m.Called(ctx, frontendName, body)
 	return args.Error(0)
 }
 
-func (m *MockHAProxyAPI) GetBackendServers(ctx context.Context, backend string) ([]haproxy.ServerRequest, error) {
+func (m *MockHAProxyAPI) GetBackendServers(ctx context.Context, backend string) (*[]haproxy.ServerRequest, error) {
 	args := m.Called(ctx, backend)
-	return args.Get(0).([]haproxy.ServerRequest), args.Error(1)
+	return args.Get(0).(*[]haproxy.ServerRequest), args.Error(1)
 }
 
-func mockServersData() ([]haproxy.ServerRequest, []haproxy.ServerRequest, map[string]int32) {
-	expectedServers := []haproxy.ServerRequest{
+func mockServersData() (*[]haproxy.ServerRequest, *[]haproxy.ServerRequest, map[string]int32) {
+	expectedServers := &[]haproxy.ServerRequest{
 		{
 			Name:    "test-node-01",
 			Address: "10.0.0.1",
@@ -92,7 +92,7 @@ func mockServersData() ([]haproxy.ServerRequest, []haproxy.ServerRequest, map[st
 			Check:   haproxy.ServerCheckEnabled,
 		},
 	}
-	existingServers := []haproxy.ServerRequest{
+	existingServers := &[]haproxy.ServerRequest{
 		{
 			Name:    "test-node-03",
 			Address: "10.0.0.3",
@@ -106,8 +106,8 @@ func mockServersData() ([]haproxy.ServerRequest, []haproxy.ServerRequest, map[st
 			Check:   haproxy.ServerCheckEnabled,
 		},
 	}
-	serversMap := make(map[string]int32, len(expectedServers))
-	for _, srv := range expectedServers {
+	serversMap := make(map[string]int32, len(*expectedServers))
+	for _, srv := range *expectedServers {
 		serversMap[srv.Name] = srv.Port
 	}
 	return expectedServers, existingServers, serversMap
@@ -204,22 +204,23 @@ func TestHandleNode_Ready(t *testing.T) {
 	}
 
 	expectedServers, existingServers, _ := mockServersData()
-	hostname := expectedServers[0].Name
-	ip := expectedServers[0].Address
-	for _, server := range expectedServers {
+    servers := *existingServers
+	hostname := servers[0].Name
+	ip := servers[0].Address
+	for _, server := range *expectedServers {
 		s.cache.Store(server.Name, NodeInfo{
 			Hostname: server.Name,
 			IP:       server.Address,
 		})
 	}
-	node := NewTestNode_Ready(expectedServers[0].Name, expectedServers[0].Address)
+	node := NewTestNode_Ready(servers[0].Name, servers[0].Address)
 
 	haproxyReader := &MockHAProxyAPI{}
 	haproxyWriter := &MockHAProxyAPI{}
 	haproxyWriter.On("DeleteBackendServer", ctx, "test-backend-01", hostname).Return(nil)
 	haproxyReader.On("GetBackendNames", ctx).Return([]string{"test-backend-01"}, nil)
 	haproxyReader.On("GetBackendServers", ctx, "test-backend-01").Return(existingServers, nil)
-	for _, server := range expectedServers {
+	for _, server := range *expectedServers {
 		haproxyWriter.On("AddBackendServer", ctx, "test-backend-01", server).Return(nil)
 	}
 
@@ -227,7 +228,9 @@ func TestHandleNode_Ready(t *testing.T) {
 
 	haproxyWriter.AssertNotCalled(t, "DeleteBackendServer", ctx, "test-backend-01", hostname)
 	haproxyReader.AssertCalled(t, "GetBackendServers", ctx, "test-backend-01")
-	haproxyWriter.AssertCalled(t, "AddBackendServer", ctx, "test-backend-01", expectedServers[0])
+	for _, server := range *expectedServers {
+	    haproxyWriter.AssertCalled(t, "AddBackendServer", ctx, "test-backend-01", server)
+    }
 }
 
 func TestHandleNode_NoReady(t *testing.T) {
@@ -429,7 +432,7 @@ func TestSyncBackend(t *testing.T) {
 	haproxyWriter := &MockHAProxyAPI{}
 
 	expectedServers, existingServers, _ := mockServersData()
-	for _, server := range expectedServers {
+	for _, server := range *expectedServers {
 		s.cache.Store(server.Name, NodeInfo{
 			Hostname: server.Name,
 			IP:       server.Address,
@@ -440,7 +443,7 @@ func TestSyncBackend(t *testing.T) {
 	haproxyReader.On("GetBackendServers", ctx, "test-backend-01").Return(existingServers, nil)
 
 	// Ловим любые вызовы AddBackendServer и возвращаем nil (иначе panic)
-	for _, server := range expectedServers {
+	for _, server := range *expectedServers {
 		haproxyWriter.On("AddBackendServer", ctx, "test-backend-01", server).Return(nil)
 	}
 
@@ -459,7 +462,7 @@ func TestSyncBackend_GetBackendServersReturn(t *testing.T) {
 	haproxyWriter := &MockHAProxyAPI{}
 
 	// Мокаем GetBackendServers
-	haproxyReader.On("GetBackendServers", mock.Anything, "backend-error").Return([]haproxy.ServerRequest{}, fmt.Errorf("TEST GetBackendServers error"))
+	haproxyReader.On("GetBackendServers", mock.Anything, "backend-error").Return(&[]haproxy.ServerRequest{}, fmt.Errorf("TEST GetBackendServers error"))
 	haproxyWriter.On("AddBackendServer", ctx, "backend-error").
 		Return(nil).Maybe()
 
@@ -478,7 +481,7 @@ func TestSyncBackend_PrepareBackendStateReturn(t *testing.T) {
 	haproxyWriter := &MockHAProxyAPI{}
 
 	// Мокаем GetBackendServers
-	haproxyReader.On("GetBackendServers", mock.Anything, "backend-error").Return([]haproxy.ServerRequest{}, nil)
+	haproxyReader.On("GetBackendServers", mock.Anything, "backend-error").Return(&[]haproxy.ServerRequest{}, nil)
 	haproxyWriter.On("AddBackendServer", ctx, "backend-error").
 		Return(nil).Maybe()
 
@@ -509,7 +512,7 @@ func TestPrepareBackendState(t *testing.T) {
 	s.log = slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	expectedServers, _, expectedMap := mockServersData()
-	port, existingMap, ok := s.prepareBackendState(expectedServers, "test-backend-01")
+	port, existingMap, ok := s.prepareBackendState(*expectedServers, "test-backend-01")
 	require.Equal(t, port, int32(8080))
 	require.Equal(t, existingMap, expectedMap)
 	require.True(t, ok)
@@ -527,12 +530,12 @@ func TestSyncNodeToBackeds(t *testing.T) {
 	haproxyWriter := &MockHAProxyAPI{}
 
 	haproxyReader.On("GetBackendServers", mock.Anything, "test-backend-01").
-		Return([]haproxy.ServerRequest{
+		Return(&[]haproxy.ServerRequest{
 			{Name: "existing-test", Port: 8080},
 		}, nil)
 
 	haproxyReader.On("GetBackendServers", mock.Anything, "test-backend-02").
-		Return([]haproxy.ServerRequest{
+		Return(&[]haproxy.ServerRequest{
 			{Name: "existing-test", Port: 8080},
 		}, nil)
 
@@ -578,20 +581,20 @@ func Test_syncNodesToBackend(t *testing.T) {
 	haproxyWriter := &MockHAProxyAPI{}
 
 	expectedServers, _, serversMap := mockServersData()
-	for _, server := range expectedServers {
+	for _, server := range *expectedServers {
 		s.cache.Store(server.Name, NodeInfo{
 			Hostname: server.Name,
 			IP:       server.Address,
 		})
-		haproxyWriter.AddServer(ctx, "test-backend-01", server)
+		haproxyWriter.AddServer(ctx, "test-backend-01", &server)
 	}
-	s.syncNodesToBackend(ctx, haproxyWriter, "test-backend-01", expectedServers[0].Port, serversMap)
+	s.syncNodesToBackend(ctx, haproxyWriter, "test-backend-01", (*expectedServers)[0].Port, serversMap)
 	_, ok1 := s.cache.Load("test-node-01")
 	_, ok2 := s.cache.Load("test-node-02")
 	require.True(t, ok1)
 	require.True(t, ok2)
-	require.Len(t, haproxyWriter.AddedServers, len(expectedServers))
-	for i, server := range expectedServers {
+	require.Len(t, haproxyWriter.AddedServers, len(*expectedServers))
+	for i, server := range *expectedServers {
 		require.Equal(t, server, haproxyWriter.AddedServers[i])
 	}
 }
@@ -600,13 +603,13 @@ func Test_nodeAlreadyExists(t *testing.T) {
 	s := &Store{}
 
 	_, existingServers, _ := mockServersData()
-	for _, server := range existingServers {
+	for _, server := range *existingServers {
 		s.cache.Store(server.Name, NodeInfo{
 			Hostname: server.Name,
 			IP:       server.Address,
 		})
 	}
-	port, existingMap, _ := s.prepareBackendState(existingServers, "test-backend-01")
+	port, existingMap, _ := s.prepareBackendState(*existingServers, "test-backend-01")
 	s.cache.Range(func(_, value any) bool {
 		node, ok := value.(NodeInfo)
 		if !ok {
@@ -623,7 +626,7 @@ func Test_GetNodeInfo(t *testing.T) {
 
 	existingServers, _, _ := mockServersData()
 
-	for _, server := range existingServers {
+	for _, server := range *existingServers {
 		s.cache.Store(server.Name, NodeInfo{
 			Hostname: server.Name,
 			IP:       server.Address,

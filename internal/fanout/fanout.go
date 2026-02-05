@@ -41,13 +41,13 @@ func (f *FanoutClient) invoke(fn func(haproxy.API) error) error {
 	return finalErr
 }
 
-func (f *FanoutClient) CreateBackend(ctx context.Context, request haproxy.BackendRequest) error {
+func (f *FanoutClient) CreateBackend(ctx context.Context, request *haproxy.BackendRequest) error {
 	return f.invoke(func(c haproxy.API) error {
 		return c.CreateBackend(ctx, request)
 	})
 }
 
-func (f *FanoutClient) AddBackendServer(ctx context.Context, backendName string, body haproxy.ServerRequest) error {
+func (f *FanoutClient) AddBackendServer(ctx context.Context, backendName string, body *haproxy.ServerRequest) error {
 	return f.invoke(func(c haproxy.API) error {
 		return c.AddBackendServer(ctx, backendName, body)
 	})
@@ -65,7 +65,7 @@ func (f *FanoutClient) CreateFrontend(ctx context.Context, body *haproxy.Fronten
 	})
 }
 
-func (f *FanoutClient) AddFrontendBinds(ctx context.Context, frontendName string, body haproxy.FrontendBindRequest) error {
+func (f *FanoutClient) AddFrontendBinds(ctx context.Context, frontendName string, body *haproxy.FrontendBindRequest) error {
 	return f.invoke(func(c haproxy.API) error {
 		return c.AddFrontendBinds(ctx, frontendName, body)
 	})

@@ -1,4 +1,4 @@
-VERSION ?= 0.1.9
+VERSION ?= 0.1.9.2
 
 IMAGE_TAG_BASE ?= baremetal-ccm-agent
 

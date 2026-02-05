@@ -31,7 +31,7 @@ type haproxyMock struct {
 
 var _ loadbalancer.HAProxyWriter = (*haproxyMock)(nil)
 
-func (m *haproxyMock) CreateBackend(ctx context.Context, request haproxy.BackendRequest) error {
+func (m *haproxyMock) CreateBackend(ctx context.Context, request *haproxy.BackendRequest) error {
 	m.CreateBackendCalled = true
 	if m.FailOn == "CreateBackend" {
 		if m.FailWith != nil {
@@ -42,7 +42,7 @@ func (m *haproxyMock) CreateBackend(ctx context.Context, request haproxy.Backend
 	return nil
 }
 
-func (m *haproxyMock) AddBackendServer(ctx context.Context, _ string, _ haproxy.ServerRequest) error {
+func (m *haproxyMock) AddBackendServer(ctx context.Context, _ string, _ *haproxy.ServerRequest) error {
 	m.AddServerCalled++
 	if m.FailOn == "AddBackendServer" {
 		return errors.New("fail")
@@ -60,7 +60,7 @@ func (m *haproxyMock) CreateFrontend(ctx context.Context, _ *haproxy.FrontendReq
 	return nil
 }
 
-func (m *haproxyMock) AddFrontendBinds(ctx context.Context, _ string, _ haproxy.FrontendBindRequest) error {
+func (m *haproxyMock) AddFrontendBinds(ctx context.Context, _ string, _ *haproxy.FrontendBindRequest) error {
 	m.AddBindCalled = true
 	return nil
 }

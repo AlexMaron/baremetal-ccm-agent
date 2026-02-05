@@ -12,16 +12,16 @@ import (
 
 type HAProxyReader interface {
 	GetBackendNames(ctx context.Context) ([]string, error)
-	GetBackendServers(ctx context.Context, backendName string) ([]haproxy.ServerRequest, error)
+	GetBackendServers(ctx context.Context, backendName string) (*[]haproxy.ServerRequest, error)
 }
 
 type HAProxyWriter interface {
-	CreateBackend(ctx context.Context, req haproxy.BackendRequest) error
-	AddBackendServer(ctx context.Context, backendName string, body haproxy.ServerRequest) error
+	CreateBackend(ctx context.Context, req *haproxy.BackendRequest) error
+	AddBackendServer(ctx context.Context, backendName string, body *haproxy.ServerRequest) error
 	DeleteBackend(ctx context.Context, name string) error
 	DeleteBackendServer(ctx context.Context, backendName, serverName string) error
 	CreateFrontend(ctx context.Context, body *haproxy.FrontendRequest) error
-	AddFrontendBinds(ctx context.Context, frontendName string, body haproxy.FrontendBindRequest) error
+	AddFrontendBinds(ctx context.Context, frontendName string, body *haproxy.FrontendBindRequest) error
 }
 
 type NodeCache interface {

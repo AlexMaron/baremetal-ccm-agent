@@ -232,13 +232,47 @@ func TestClient_CreateBackend(t *testing.T) {
 		Mode: "tcp",
 	}
 
-	err := client.CreateBackend(context.Background(), *request)
+	err := client.CreateBackend(context.Background(), request)
 
 	require.NoError(t, err)
 
 	require.True(t, calls.GetVersion, "GET version was not called")
 	require.True(t, calls.PostBackend, "POST backend was not called")
 	require.False(t, calls.PutBackend)
+}
+
+func TestClient_CreateBackend_Normalization(t *testing.T) {
+	t.Parallel()
+
+	calls := &haproxyMockCalls{}
+	calls.ForcePostConflict = false
+	client := newHaproxyTestClient(t, calls)
+
+	// Создаем бэкенд с минимумом полей
+	request := &haproxy.BackendRequest{
+		Name: backendName,
+		Mode: "tcp",
+		Balance: haproxy.Balance{}, // пусто, должно заполниться leastconn
+		AdvCheck: "",
+		DefaultServer: haproxy.DefaultServer{},
+	}
+
+	err := client.CreateBackend(context.Background(), request)
+	require.NoError(t, err)
+
+	// Проверяем, что вызов был
+	require.True(t, calls.GetVersion, "GET version was not called")
+	require.True(t, calls.PostBackend, "POST backend was not called")
+	require.False(t, calls.PutBackend)
+
+	// Проверяем нормализацию
+	require.Equal(t, "leastconn", request.Balance.Algorithm, "Balance.Algorithm was not set")
+	require.Equal(t, "tcp-check", request.AdvCheck, "AdvCheck was not set")
+	require.Equal(t, int64(3000), request.DefaultServer.Inter, "DefaultServer.Inter was not set")
+	require.Equal(t, int64(1000), request.DefaultServer.Fastinter, "DefaultServer.Fastinter was not set")
+	require.Equal(t, int64(4), request.DefaultServer.Fall, "DefaultServer.Fall was not set")
+	require.Equal(t, int64(3), request.DefaultServer.Rise, "DefaultServer.Rise was not set")
+	require.Equal(t, "shutdown-sessions", request.DefaultServer.OnMarkedDown, "DefaultServer.OnMarkedDown was not set")
 }
 
 func TestClient_CreateBackendIfExists(t *testing.T) {
@@ -254,7 +288,7 @@ func TestClient_CreateBackendIfExists(t *testing.T) {
 		ConnectTimeout: 500,
 	}
 
-	err := client.CreateBackend(context.Background(), request)
+	err := client.CreateBackend(context.Background(), &request)
 	require.NoError(t, err)
 
 	require.True(t, calls.GetVersion, "version endpoint was not called")
@@ -283,11 +317,12 @@ func TestClient_GetBackendServers(t *testing.T) {
 
 	servers, err := client.GetBackendServers(context.Background(), backendName)
 	require.NoError(t, err)
-	require.Len(t, servers, 2)
-	require.Equal(t, "server-1", servers[0].Name)
-	require.Equal(t, "10.0.0.1", servers[0].Address)
-	require.Equal(t, "server-2", servers[1].Name)
-	require.Equal(t, "10.0.0.2", servers[1].Address)
+    serversSlice := *servers
+	require.Len(t, serversSlice, 2)
+	require.Equal(t, "server-1", serversSlice[0].Name)
+	require.Equal(t, "10.0.0.1", serversSlice[0].Address)
+	require.Equal(t, "server-2", serversSlice[1].Name)
+	require.Equal(t, "10.0.0.2", serversSlice[1].Address)
 
 	require.True(t, calls.GetBackendServers, "GET backend was not called")
 }
@@ -304,7 +339,7 @@ func TestClient_PostBackendServers(t *testing.T) {
 		Port:    80,
 		Check:   haproxy.ServerCheckEnabled,
 	}
-	err := client.AddBackendServer(context.Background(), backendName, servers)
+	err := client.AddBackendServer(context.Background(), backendName, &servers)
 	require.NoError(t, err)
 	require.Equal(t, "server-1", servers.Name)
 	require.Equal(t, "10.0.0.1", servers.Address)
@@ -441,7 +476,7 @@ func TestClient_AddFrontendBinds(t *testing.T) {
 		Port:    80,
 	}
 
-	err := client.AddFrontendBinds(context.Background(), backendName, body)
+	err := client.AddFrontendBinds(context.Background(), backendName, &body)
 	require.NoError(t, err)
 
 	require.True(t, calls.GetVersion, "version endpoint was not called")

@@ -124,7 +124,7 @@ func (s *Store) syncBackend(ctx context.Context, haproxyReader haproxy.API, hapr
 		return
 	}
 
-	port, existingMap, ok := s.prepareBackendState(servers, backend)
+	port, existingMap, ok := s.prepareBackendState(*servers, backend)
 	if !ok {
 		return
 	}
@@ -132,7 +132,7 @@ func (s *Store) syncBackend(ctx context.Context, haproxyReader haproxy.API, hapr
 	s.syncNodesToBackend(ctx, haproxyWriter, backend, port, existingMap)
 }
 
-func (s *Store) getBackendServers(ctx context.Context, haproxyClient haproxy.API, backend string) ([]haproxy.ServerRequest, error) {
+func (s *Store) getBackendServers(ctx context.Context, haproxyClient haproxy.API, backend string) (*[]haproxy.ServerRequest, error) {
 	servers, err := haproxyClient.GetBackendServers(ctx, backend)
 	if err != nil {
 		s.log.Error(
@@ -196,7 +196,7 @@ func (s *Store) addNodeToBackend(
 	node NodeInfo,
 	port int32,
 ) {
-	serverBody := haproxy.ServerRequest{
+	serverBody := &haproxy.ServerRequest{
 		Name:    node.Hostname,
 		Address: node.IP,
 		Port:    port,

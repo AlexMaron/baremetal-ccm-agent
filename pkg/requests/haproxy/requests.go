@@ -3,12 +3,13 @@ package haproxy
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 )
 
-func (c *Client) CreateBackend(ctx context.Context, request BackendRequest) error {
+func (c *Client) CreateBackend(ctx context.Context, request *BackendRequest) error {
 	// Get Haprxoy config version
 	version, err := c.GetConfigVersion(ctx)
 	if err != nil {
@@ -23,9 +24,11 @@ func (c *Client) CreateBackend(ctx context.Context, request BackendRequest) erro
 			DefaultServerValidateRule,
 		},
 	}
-	if err := normalizer.Normalize(&request); err != nil {
+	if err := normalizer.Normalize(request); err != nil {
 		return err
 	}
+
+    log.Printf("After normalize: backend.Balance.Algorithm=%q", request.Balance.Algorithm)
 
 	body := request
 
@@ -94,8 +97,8 @@ func (c *Client) DeleteBackend(ctx context.Context, name string) error {
 	return nil
 }
 
-func (c *Client) GetBackendServers(ctx context.Context, backendName string) ([]ServerRequest, error) {
-	var servers []ServerRequest
+func (c *Client) GetBackendServers(ctx context.Context, backendName string) (*[]ServerRequest, error) {
+	var servers *[]ServerRequest
 	path := fmt.Sprintf(pathServers, backendName)
 	resp, err := c.doRequest(
 		ctx,
@@ -114,7 +117,7 @@ func (c *Client) GetBackendServers(ctx context.Context, backendName string) ([]S
 	return servers, nil
 }
 
-func (c *Client) AddBackendServer(ctx context.Context, backendName string, body ServerRequest) error {
+func (c *Client) AddBackendServer(ctx context.Context, backendName string, body *ServerRequest) error {
 	// Get Haprxoy config version
 	version, err := c.GetConfigVersion(ctx)
 	if err != nil {
@@ -279,7 +282,7 @@ func (c *Client) CreateFrontend(ctx context.Context, body *FrontendRequest) erro
 	return nil
 }
 
-func (c *Client) AddFrontendBinds(ctx context.Context, frontendName string, body FrontendBindRequest) error {
+func (c *Client) AddFrontendBinds(ctx context.Context, frontendName string, body *FrontendBindRequest) error {
 	// Get Haprxoy config version
 	version, err := c.GetConfigVersion(ctx)
 	if err != nil {
