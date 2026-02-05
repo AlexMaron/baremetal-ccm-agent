@@ -83,7 +83,6 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 		if err := haproxyClient.CreateBackend(ctx, req.LB.Backend); err != nil {
 			log.Info("HAProxy error", sl.Err(err))
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnprocessableEntity)
 			RenderError(w, r, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -95,7 +94,7 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 				Port:    req.LB.NodePort,
 				Check:   haproxy.ServerCheckEnabled,
 			}
-			if err := haproxyClient.AddBackendServer(ctx, req.LB.Name, *serverBody); err != nil {
+			if err := haproxyClient.AddBackendServer(ctx, req.LB.Backend.Name, *serverBody); err != nil {
 				log.Info("HAProxy error", sl.Err(err))
 				RenderError(w, r, http.StatusInternalServerError, err.Error())
 				return false
@@ -104,7 +103,7 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 		})
 
 		optsBody := &req.LB.Backend
-		if err := haproxyClient.AddBackendOptions(ctx, req.LB.Name, *optsBody); err != nil {
+		if err := haproxyClient.AddBackendOptions(ctx, req.LB.Backend.Name, *optsBody); err != nil {
 			log.Info("HAProxy error", sl.Err(err))
 			RenderError(w, r, http.StatusInternalServerError, err.Error())
 			return
@@ -118,11 +117,11 @@ func NewLoadBalancerCreate(ctx context.Context, log *slog.Logger, externalIP net
 		}
 
 		bindBody := &haproxy.FrontendBindRequest{
-			Name:    req.LB.Name,
+			Name:    req.LB.Frontend.Name,
 			Address: "*",
 			Port:    req.LB.Port,
 		}
-		if err := haproxyClient.AddFrontendBinds(ctx, req.LB.Name, *bindBody); err != nil {
+		if err := haproxyClient.AddFrontendBinds(ctx, req.LB.Frontend.Name, *bindBody); err != nil {
 			log.Info("HAProxy error", sl.Err(err))
 			RenderError(w, r, http.StatusInternalServerError, err.Error())
 			return
@@ -160,10 +159,8 @@ func LoadBalancerDelete(ctx context.Context, log *slog.Logger, externalIP net.IP
 		if err := validator.New().Struct(req); err != nil {
 			validateErr := err.(validator.ValidationErrors)
 			log.Error("invalid request", sl.Err(err))
-
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, response.ValidateError(validateErr))
-
 			return
 		}
 

@@ -39,80 +39,80 @@ func ValidateFronend(request *FrontendRequest) error {
 }
 
 func DefaultFrontendModeRule(f *FrontendRequest) error {
-    if f.Mode == "" {
-        f.Mode = "tcp"
-    }
-    return nil
+	if f.Mode == "" {
+		f.Mode = "tcp"
+	}
+	return nil
 }
 
 type BackendRule func(*BackendRequest) error
 
 type BackendNormalizer struct {
-    rules []BackendRule
+	rules []BackendRule
 }
 
 func (n *BackendNormalizer) Normalize(b *BackendRequest) error {
-    for _, rule := range n.rules {
-        if err := rule(b); err != nil {
-            return err
-        }
-    }
-    return nil
+	for _, rule := range n.rules {
+		if err := rule(b); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type FrontendRule func(*FrontendRequest) error
 
 type FrontendNormalizer struct {
-    rules []FrontendRule
+	rules []FrontendRule
 }
 
 func (n *FrontendNormalizer) Normalize(b *FrontendRequest) error {
-    for _, rule := range n.rules {
-        if err := rule(b); err != nil {
-            return err
-        }
-    }
-    return nil
+	for _, rule := range n.rules {
+		if err := rule(b); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func DefaultBackendModeRule(b *BackendRequest) error {
-    if b.Mode == "" {
-        b.Mode = "tcp"
-    }
-    return nil
+	if b.Mode == "" {
+		b.Mode = "tcp"
+	}
+	return nil
 }
 
 func TCPBalanceRule(b *BackendRequest) error {
-    if b.Mode == "tcp" && b.Balance.Algorithm == "" {
-        b.Balance.Algorithm = "leastconn"
-    }
-    return nil
+	if b.Mode == "tcp" && b.Balance.Algorithm == "" {
+		b.Balance.Algorithm = "leastconn"
+	}
+	return nil
 }
 
 func AdvCheckValidationRule(b *BackendRequest) error {
-    if b.Mode == "http" {
-        b.AdvCheck = "httpchk"
-    } else {
-        b.AdvCheck = "tcp-check"
-    }
-    return nil
+	if b.Mode == "http" {
+		b.AdvCheck = "httpchk"
+	} else {
+		b.AdvCheck = "tcp-check"
+	}
+	return nil
 }
 
 func DefaultServerValidateRule(b *BackendRequest) error {
-    if b.DefaultServer.Inter == 0 {
-        b.DefaultServer.Inter = 3000
-    }
-    if b.DefaultServer.Fastinter == 0 {
-        b.DefaultServer.Fastinter = 1000
-    }
-    if b.DefaultServer.Fall == 0 {
-        b.DefaultServer.Fall = 4
-    }
-    if b.DefaultServer.Rise == 0 {
-        b.DefaultServer.Rise = 3
-    }
-    if b.DefaultServer.OnMarkedDown == "" {
-        b.DefaultServer.OnMarkedDown = "shutdown-sessions"
-    }
-    return nil
+	if b.DefaultServer.Inter == 0 {
+		b.DefaultServer.Inter = 3000
+	}
+	if b.DefaultServer.Fastinter == 0 {
+		b.DefaultServer.Fastinter = 1000
+	}
+	if b.DefaultServer.Fall == 0 {
+		b.DefaultServer.Fall = 4
+	}
+	if b.DefaultServer.Rise == 0 {
+		b.DefaultServer.Rise = 3
+	}
+	if b.DefaultServer.OnMarkedDown == "" {
+		b.DefaultServer.OnMarkedDown = "shutdown-sessions"
+	}
+	return nil
 }

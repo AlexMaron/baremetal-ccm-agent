@@ -1,8 +1,8 @@
-VERSION ?= 0.0.1
+VERSION ?= 0.1.6
 
-IMAGE_TAG_BASE ?= xway.io/github.com/AlexMaron/baremetal-ccm-agent
+IMAGE_TAG_BASE ?= baremetal-ccm-agent
 
-IMG ?= cr.selcloud.ru/xway/github.com/AlexMaron/baremetal-ccm-agent:$(VERSION)
+IMG ?= cr.selcloud.ru/xway/baremetal-ccm-agent:$(VERSION)
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))

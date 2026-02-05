@@ -11,15 +11,15 @@ import (
 )
 
 type mockHaproxyAPI struct {
-    failures map[string]int
-    calls map[string]int
+	failures map[string]int
+	calls    map[string]int
 }
 
 func newMockHaproxyAPI() *mockHaproxyAPI {
-    return &mockHaproxyAPI{
-        failures: make(map[string]int),
-        calls: make(map[string]int),
-    }
+	return &mockHaproxyAPI{
+		failures: make(map[string]int),
+		calls:    make(map[string]int),
+	}
 }
 
 func (m *mockHaproxyAPI) GetBackendNames(ctx context.Context) ([]string, error) {
@@ -41,21 +41,21 @@ func (m *mockHaproxyAPI) GetBackendServers(ctx context.Context, backendName stri
 }
 
 func (m *mockHaproxyAPI) CreateBackend(ctx context.Context, req haproxy.BackendRequest) error {
-    m.calls["CreateBackend"]++
-    if m.failures["CreateBackend"] > 0 {
-        m.failures["CreateBackend"]--
-        return errors.New("fail")
-    }
-    return nil
+	m.calls["CreateBackend"]++
+	if m.failures["CreateBackend"] > 0 {
+		m.failures["CreateBackend"]--
+		return errors.New("fail")
+	}
+	return nil
 }
 
 func (m *mockHaproxyAPI) AddBackendServer(ctx context.Context, backendName string, body haproxy.ServerRequest) error {
-    m.calls["AddBackendServer"]++
-    if m.failures["AddBackendServer"] > 0 {
-        m.failures["AddBackendServer"]--
-        return errors.New("fail")
-    }
-    return nil
+	m.calls["AddBackendServer"]++
+	if m.failures["AddBackendServer"] > 0 {
+		m.failures["AddBackendServer"]--
+		return errors.New("fail")
+	}
+	return nil
 }
 func (m *mockHaproxyAPI) AddBackendOptions(ctx context.Context, backendName string, opts any) error {
 	m.calls["AddBackendOptions"]++
@@ -114,57 +114,57 @@ func (m *mockHaproxyAPI) DeleteBackendServer(ctx context.Context, backendName, s
 // --------------------- Тесты ---------------------
 
 func TestFanoutClient_Success(t *testing.T) {
-    ctx := context.Background()
-    m1 := newMockHaproxyAPI()
-    m2 := newMockHaproxyAPI()
+	ctx := context.Background()
+	m1 := newMockHaproxyAPI()
+	m2 := newMockHaproxyAPI()
 
-    client := NewFanoutClient([]haproxy.API{m1, m2}, 2, 1*time.Millisecond)
+	client := NewFanoutClient([]haproxy.API{m1, m2}, 2, 1*time.Millisecond)
 
-    err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "test"})
+	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "test"})
 
-    require.NoError(t, err)
-    require.Equal(t, 1, m1.calls["CreateBackend"])
-    require.Equal(t, 1, m2.calls["CreateBackend"])
+	require.NoError(t, err)
+	require.Equal(t, 1, m1.calls["CreateBackend"])
+	require.Equal(t, 1, m2.calls["CreateBackend"])
 }
 
 func TestFanoutClient_Retry(t *testing.T) {
-    ctx := context.Background()
-    m := newMockHaproxyAPI()
-    m.failures["CreateBackend"] = 2
+	ctx := context.Background()
+	m := newMockHaproxyAPI()
+	m.failures["CreateBackend"] = 2
 
-    client := NewFanoutClient([]haproxy.API{m}, 3, 1*time.Millisecond)
+	client := NewFanoutClient([]haproxy.API{m}, 3, 1*time.Millisecond)
 
-    err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "retry-test"})
+	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "retry-test"})
 
-    require.NoError(t, err)
-    require.Equal(t, 3, m.calls["CreateBackend"])
+	require.NoError(t, err)
+	require.Equal(t, 3, m.calls["CreateBackend"])
 }
 
 func TestFanoutClient_FailureAfterRetries(t *testing.T) {
-    ctx := context.Background()
-    m := newMockHaproxyAPI()
-    m.failures["CreateBackend"] = 5
+	ctx := context.Background()
+	m := newMockHaproxyAPI()
+	m.failures["CreateBackend"] = 5
 
-    client := NewFanoutClient([]haproxy.API{m}, 3, 1*time.Millisecond)
+	client := NewFanoutClient([]haproxy.API{m}, 3, 1*time.Millisecond)
 
-    err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "fail-test"})
+	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "fail-test"})
 
-    require.Error(t, err)
-    require.Equal(t, 4, m.calls["CreateBackend"])
+	require.Error(t, err)
+	require.Equal(t, 4, m.calls["CreateBackend"])
 }
 
 func TestFanoutClient_MultipleClientRetry(t *testing.T) {
-    ctx := context.Background()
-    m1 := newMockHaproxyAPI()
-    m2 := newMockHaproxyAPI()
-    m1.failures["CreateBackend"] = 1
-    m2.failures["CreateBackend"] = 2
+	ctx := context.Background()
+	m1 := newMockHaproxyAPI()
+	m2 := newMockHaproxyAPI()
+	m1.failures["CreateBackend"] = 1
+	m2.failures["CreateBackend"] = 2
 
-    client := NewFanoutClient([]haproxy.API{m1, m2}, 2, 1*time.Millisecond)
+	client := NewFanoutClient([]haproxy.API{m1, m2}, 2, 1*time.Millisecond)
 
-    err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "multi-client"})
+	err := client.CreateBackend(ctx, haproxy.BackendRequest{Name: "multi-client"})
 
-    require.NoError(t, err)
-    require.Equal(t, 2, m1.calls["CreateBackend"])
-    require.Equal(t, 3, m2.calls["CreateBackend"])
+	require.NoError(t, err)
+	require.Equal(t, 2, m1.calls["CreateBackend"])
+	require.Equal(t, 3, m2.calls["CreateBackend"])
 }

@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/fanout"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/router"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/externalip"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/fanout"
 	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 )
 
@@ -39,14 +39,14 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 		return fmt.Errorf("failed to get external IP: %w", err)
 	}
 
-    reader := haproxyClient(cfg.DataPlaneHosts[0], *cfg)
-    var writers []haproxy.API
-    for _, host := range cfg.DataPlaneHosts {
-        c := haproxyClient(host, *cfg)
-        writers = append(writers, c)
-    }
+	reader := haproxyClient(cfg.DataPlaneHosts[0], *cfg)
+	var writers []haproxy.API
+	for _, host := range cfg.DataPlaneHosts {
+		c := haproxyClient(host, *cfg)
+		writers = append(writers, c)
+	}
 
-    fanout := fanout.NewFanoutClient(writers, 3, time.Second)
+	fanout := fanout.NewFanoutClient(writers, 3, time.Second)
 
 	nodeStore := nodewatcher.NewStore(log, reader, fanout)
 	stopCh := nodewatcher.StartWatcher(ctx, cfg.Kubeconfig, nodeStore.HandleNode, reader, fanout)
@@ -85,7 +85,7 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 
 func haproxyClient(baseURL string, cfg config.Config) *haproxy.Client {
 	return &haproxy.Client{
-		BaseURL: "http://localhost:5555",
+		BaseURL: baseURL,
 		HTTPClient: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -95,7 +95,6 @@ func haproxyClient(baseURL string, cfg config.Config) *haproxy.Client {
 	}
 
 }
-
 
 func setupLogger(env string) *slog.Logger {
 	var log *slog.Logger

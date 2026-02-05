@@ -106,11 +106,11 @@ type BackendRequest struct {
 
 	// Установка максимального времени ожидания для успешного подключения к серверу
 	// Может использоваться в контекстах: tcp, http, log
-	ConnectTimeout string `json:"connect_timeout,omitempty"`
+	ConnectTimeout int64 `json:"connect_timeout,omitempty"`
 
 	// Установка максимального времени бездействия на стороне сервера
 	// Может использоваться в контекстах: tcp, http, log
-	ServerTimeout string `json:"server_timeout,omitempty"`
+	ServerTimeout int64 `json:"server_timeout,omitempty"`
 }
 
 type ForwardFor struct {
@@ -145,7 +145,7 @@ type FrontendRequest struct {
 
 	// Устанавливает максимальное время бездействия на стороне клиента.
 	// Может использоваться в следующих контекстах: tcp, http
-	ClientTimeout string `json:"client_timeout,omitempty"`
+	ClientTimeout int64 `json:"client_timeout,omitempty"`
 }
 
 type FrontendBindRequest struct {

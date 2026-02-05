@@ -13,9 +13,9 @@ type HAProxyWriter interface {
 	AddFrontendBinds(ctx context.Context, frontendName string, body haproxy.FrontendBindRequest) error
 	DeleteBackend(ctx context.Context, name string) error
 	DeleteFrontend(ctx context.Context, name string) error
-    DeleteBackendServer(ctx context.Context, backendName, serverName string) error
+	DeleteBackendServer(ctx context.Context, backendName, serverName string) error
 }
 
 type HAProxyReader interface {
-    GetBackendNames(ctx context.Context) ([]string, error)
+	GetBackendNames(ctx context.Context) ([]string, error)
 }

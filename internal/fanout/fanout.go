@@ -9,36 +9,36 @@ import (
 )
 
 type FanoutClient struct {
-    clients []haproxy.API
-    retries int
-    delay   time.Duration
+	clients []haproxy.API
+	retries int
+	delay   time.Duration
 }
 
 func NewFanoutClient(clients []haproxy.API, retries int, delay time.Duration) *FanoutClient {
-    return &FanoutClient{
-        clients: clients,
-        retries: retries,
-        delay: delay,
-    }
+	return &FanoutClient{
+		clients: clients,
+		retries: retries,
+		delay:   delay,
+	}
 }
 
 func (f *FanoutClient) invoke(fn func(haproxy.API) error) error {
-    var finalErr error
-    for _, c := range f.clients {
-        var err error
-        for i := 0; i <= f.retries; i++ {
-            err = fn(c)
-            if err == nil {
-            break
-            }
-            time.Sleep(f.delay)
-        }
-        if err != nil {
-            finalErr = errors.Join(finalErr, err)
-        }
-    }
+	var finalErr error
+	for _, c := range f.clients {
+		var err error
+		for i := 0; i <= f.retries; i++ {
+			err = fn(c)
+			if err == nil {
+				break
+			}
+			time.Sleep(f.delay)
+		}
+		if err != nil {
+			finalErr = errors.Join(finalErr, err)
+		}
+	}
 
-    return finalErr
+	return finalErr
 }
 
 func (f *FanoutClient) CreateBackend(ctx context.Context, request haproxy.BackendRequest) error {
@@ -90,6 +90,5 @@ func (f *FanoutClient) DeleteBackendServer(ctx context.Context, backendName, ser
 }
 
 func (f *FanoutClient) GetBackendNames(ctx context.Context) ([]string, error) {
-    return nil, errors.New("fanout client does not support read operations")
+	return nil, errors.New("fanout client does not support read operations")
 }
-

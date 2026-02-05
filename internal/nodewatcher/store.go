@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/fanout"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
 	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
 
 	v1 "k8s.io/api/core/v1"
@@ -14,11 +14,11 @@ import (
 )
 
 func NewStore(log *slog.Logger, reader haproxy.API, writer *fanout.FanoutClient) *Store {
-    return &Store{
-        log: log,
-        reader: reader,
-        writer: writer,
-    }
+	return &Store{
+		log:    log,
+		reader: reader,
+		writer: writer,
+	}
 }
 
 func (s *Store) HandleNode(ctx context.Context, hostname, ip string, node *v1.Node, haproxyReader haproxy.API, haproxyWriter HAProxyWriter) {

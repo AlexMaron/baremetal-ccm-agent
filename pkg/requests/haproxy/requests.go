@@ -15,17 +15,17 @@ func (c *Client) CreateBackend(ctx context.Context, request BackendRequest) erro
 		return err
 	}
 
-    normalizer := BackendNormalizer{
-        rules: []BackendRule{
-            DefaultBackendModeRule,
-            TCPBalanceRule,
-            AdvCheckValidationRule,
-            DefaultServerValidateRule,
-        },
-    }
-    if err := normalizer.Normalize(&request); err != nil {
-        return err
-    }
+	normalizer := BackendNormalizer{
+		rules: []BackendRule{
+			DefaultBackendModeRule,
+			TCPBalanceRule,
+			AdvCheckValidationRule,
+			DefaultServerValidateRule,
+		},
+	}
+	if err := normalizer.Normalize(&request); err != nil {
+		return err
+	}
 
 	body := request
 
@@ -237,15 +237,15 @@ func (c *Client) CreateFrontend(ctx context.Context, body *FrontendRequest) erro
 		return err
 	}
 
-    normalizer := FrontendNormalizer{
-        rules: []FrontendRule{
-            DefaultFrontendModeRule,
-            ValidateFronend,
-        },
-    }
-    if err := normalizer.Normalize(body); err != nil {
-        return err
-    }
+	normalizer := FrontendNormalizer{
+		rules: []FrontendRule{
+			DefaultFrontendModeRule,
+			ValidateFronend,
+		},
+	}
+	if err := normalizer.Normalize(body); err != nil {
+		return err
+	}
 
 	c.bodyJSONLog(ctx, body)
 

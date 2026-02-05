@@ -11,10 +11,10 @@ import (
 
 type Config struct {
 	Env               string        `env:"ENV" env-default:"prod" validate:"oneof=prod dev test"`
-	HTTPAddress       string        `env:"HTTP_ADDRESS" env-default:"localhost:8082" validate:"required"`
+	HTTPAddress       string        `env:"HTTP_ADDRESS" env-default:"0.0.0.0:8080" validate:"required"`
 	HTTPTimeout       time.Duration `env:"HTTP_TIMEOUT" env-default:"4s"`
 	HTTPIdleTimeout   time.Duration `env:"HTTP_IDLE_TIMEOUT" env-default:"60s"`
-	Kubeconfig        string        `env:"KUBECONFIG" validate:"required"`
+	Kubeconfig        string        `env:"KUBECONFIG"`
 	DataPlaneHosts    []string      `env:"DATA_PLANE_HOSTS" validate:"required"`
 	Username          string        `env:"USERNAME" validate:"required"`
 	Password          string        `env:"PASSWORD" validate:"required"`
@@ -23,32 +23,32 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-    var cfg Config
+	var cfg Config
 
-    if err := cleanenv.ReadEnv(&cfg); err != nil {
-        return nil, err
-    }
+	if err := cleanenv.ReadEnv(&cfg); err != nil {
+		return nil, err
+	}
 
 	validate := validator.New()
 	if err := validate.Struct(cfg); err != nil {
 		return nil, err
 	}
 
-    for _, h := range cfg.DataPlaneHosts {
-      if strings.TrimSpace(h) == "" {
-          log.Fatalf("DATA_PLANE_HOSTS contains empty host")
-      }
-    }
+	for _, h := range cfg.DataPlaneHosts {
+		if strings.TrimSpace(h) == "" {
+			log.Fatalf("DATA_PLANE_HOSTS contains empty host")
+		}
+	}
 
-    return &cfg, nil
+	return &cfg, nil
 }
 
 func MustLoad() *Config {
-    cfg, err := Load()
+	cfg, err := Load()
 
-    if err != nil {
-        log.Fatalf("invalid config: %v", err)
-    }
+	if err != nil {
+		log.Fatalf("invalid config: %v", err)
+	}
 
-    return cfg
+	return cfg
 }

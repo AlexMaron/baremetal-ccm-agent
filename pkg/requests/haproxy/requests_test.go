@@ -251,7 +251,7 @@ func TestClient_CreateBackendIfExists(t *testing.T) {
 	request := haproxy.BackendRequest{
 		Name:           backendName,
 		Mode:           "tcp",
-		ConnectTimeout: "5s",
+		ConnectTimeout: 500,
 	}
 
 	err := client.CreateBackend(context.Background(), request)

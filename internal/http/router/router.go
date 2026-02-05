@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
+	"github.com/AlexMaron/baremetal-ccm-agent/internal/fanout"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/handlers/loadbalancer"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/fanout"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
