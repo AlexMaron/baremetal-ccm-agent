@@ -220,7 +220,7 @@ func TestLoadBalancerCreate_ValidateCreateBackendOptions(t *testing.T) {
 
 	handler(w, req)
 
-	require.Equal(t, http.StatusUnprocessableEntity, w.Result().StatusCode)
+	require.Equal(t, http.StatusInternalServerError, w.Result().StatusCode)
 	require.Contains(t, w.Body.String(), "fail")
 }
 

@@ -19,6 +19,7 @@ func TestMustLoad_Success(t *testing.T) {
 	t.Setenv("PASSWORD", "pass")
 	t.Setenv("DATA_PLANE_USERNAME", "haproxy")
 	t.Setenv("DATA_PLANE_PASSWORD", "secret")
+	t.Setenv("EXTERNAL_IP", "8.8.8.8")
 
 	cfg := config.MustLoad()
 

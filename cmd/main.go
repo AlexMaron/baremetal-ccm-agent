@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/config"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/fanout"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/http/router"
-	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/externalip"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/lib/logger/sl"
 	"github.com/AlexMaron/baremetal-ccm-agent/internal/nodewatcher"
 	"github.com/AlexMaron/baremetal-ccm-agent/pkg/requests/haproxy"
@@ -34,10 +34,14 @@ func main() {
 }
 
 func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
-	externalIP, err := externalip.GetExternalIP()
-	if err != nil {
-		return fmt.Errorf("failed to get external IP: %w", err)
+	externalIP := net.ParseIP(cfg.ExternaIP)
+	if externalIP == nil {
+		return fmt.Errorf("failed to get external IP")
 	}
+
+    if externalIP.To4() == nil {
+    return fmt.Errorf("external IP is not IPv4: %s", cfg.ExternaIP)
+    }
 
 	reader := haproxyClient(cfg.DataPlaneHosts[0], *cfg)
 	var writers []haproxy.API

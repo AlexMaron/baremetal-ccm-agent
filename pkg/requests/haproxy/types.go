@@ -46,27 +46,27 @@ type ValidationErrors struct {
 
 type Balance struct {
 	// Allowed: first┃hash┃hdr┃leastconn┃random┃rdp-cookie┃roundrobin┃source┃static-rr┃uri┃url_param
-	Algorithm string `json:"algorithm"`
+	Algorithm string `json:"algorithm,omitempty"`
 }
 
 type DefaultServer struct {
 	// https://www.haproxy.com/documentation/haproxy-configuration-manual/latest/#5.2-inter
 	// inter <delay> — интервал между обычными health check в миллисекундах (по умолчанию 2000 ms).
 	// Используется, когда сервер в стабильном состоянии UP.
-	Inter int64 `json:"inter"`
+	Inter int64 `json:"inter,omitempty"`
 
 	// fastinter <delay> — сокращённый интервал для промежуточных состояний сервера
 	// (например, когда он транзитом уходит в DOWN или восстанавливается).
-	Fastinter int64 `json:"fastinter"`
+	Fastinter int64 `json:"fastinter,omitempty"`
 
 	// fall <count> — сервер считается неработоспособным (DOWN) после <count>
 	// подряд неудачных health check (по умолчанию 3).
 	// Используется вместе с check, inter и rise для настройки проверки состояния серверов.
-	Fall int64 `json:"fall"`
-	Rise int64 `json:"rise"`
+	Fall int64 `json:"fall,omitempty"`
+	Rise int64 `json:"rise,omitempty"`
 
 	// Currently one action is available: shutdown-sessions
-	OnMarkedDown string `json:"on-marked-down"`
+	OnMarkedDown string `json:"on-marked-down,omitempty"`
 
 	// https://www.haproxy.com/documentation/haproxy-configuration-manual/latest/#send-proxy
 	// send-proxy заставляет HAProxy использовать PROXY protocol при соединении с сервером,
@@ -82,7 +82,7 @@ type DefaultServer struct {
 
 type BackendRequest struct {
 	Name string `json:"name"` // Имя бэкенда
-	Mode string `json:"mode"` // Режим работы (tcp, http)
+	Mode string `json:"mode,omitempty"` // Режим работы (tcp, http)
 
 	// Определяет алгоритм балансировки нагрузки для бэкенда.
 	// Может использоваться в контекстах: tcp, http, log
@@ -90,7 +90,7 @@ type BackendRequest struct {
 
 	// Дополнительные проверки сервера.
 	// Допустимые значения: httpchk┃ldap-check┃mysql-check┃pgsql-check┃redis-check┃smtpchk┃ssl-hello-chk┃tcp-check
-	AdvCheck string `json:"adv_check"`
+	AdvCheck string `json:"adv_check,omitempty"`
 
 	// Изменение опций по умолчанию для серверов в бэкенде
 	// Может использоваться в контекстах: tcp, http
@@ -135,7 +135,7 @@ type ServerRequest struct {
 	Name    string `json:"Name"`
 	Address string `json:"address"`
 	Port    int32  `json:"port"`
-	Check   Check  `json:"check"`
+	Check   Check  `json:"check,omitempty"`
 }
 
 type FrontendRequest struct {
