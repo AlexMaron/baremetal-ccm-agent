@@ -20,7 +20,7 @@ type Config struct {
 	Password          string        `env:"PASSWORD" validate:"required"`
 	DataPlaneUsername string        `env:"DATA_PLANE_USERNAME" validate:"required"`
 	DataPlanePassword string        `env:"DATA_PLANE_PASSWORD" validate:"required"`
-    ExternaIP         string        `env:"EXTERNAL_IP" validate:"required"`
+	ExternaIP         string        `env:"EXTERNAL_IP" validate:"required"`
 }
 
 func Load() (*Config, error) {

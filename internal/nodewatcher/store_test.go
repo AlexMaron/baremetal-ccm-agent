@@ -204,7 +204,7 @@ func TestHandleNode_Ready(t *testing.T) {
 	}
 
 	expectedServers, existingServers, _ := mockServersData()
-    servers := *existingServers
+	servers := *existingServers
 	hostname := servers[0].Name
 	ip := servers[0].Address
 	for _, server := range *expectedServers {
@@ -229,8 +229,8 @@ func TestHandleNode_Ready(t *testing.T) {
 	haproxyWriter.AssertNotCalled(t, "DeleteBackendServer", ctx, "test-backend-01", hostname)
 	haproxyReader.AssertCalled(t, "GetBackendServers", ctx, "test-backend-01")
 	for _, server := range *expectedServers {
-	    haproxyWriter.AssertCalled(t, "AddBackendServer", ctx, "test-backend-01", server)
-    }
+		haproxyWriter.AssertCalled(t, "AddBackendServer", ctx, "test-backend-01", server)
+	}
 }
 
 func TestHandleNode_NoReady(t *testing.T) {

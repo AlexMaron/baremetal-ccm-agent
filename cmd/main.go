@@ -39,9 +39,9 @@ func run(ctx context.Context, cfg *config.Config, log *slog.Logger) error {
 		return fmt.Errorf("failed to get external IP")
 	}
 
-    if externalIP.To4() == nil {
-    return fmt.Errorf("external IP is not IPv4: %s", cfg.ExternaIP)
-    }
+	if externalIP.To4() == nil {
+		return fmt.Errorf("external IP is not IPv4: %s", cfg.ExternaIP)
+	}
 
 	reader := haproxyClient(cfg.DataPlaneHosts[0], *cfg)
 	var writers []haproxy.API

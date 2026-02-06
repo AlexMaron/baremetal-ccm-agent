@@ -250,10 +250,10 @@ func TestClient_CreateBackend_Normalization(t *testing.T) {
 
 	// Создаем бэкенд с минимумом полей
 	request := &haproxy.BackendRequest{
-		Name: backendName,
-		Mode: "tcp",
-		Balance: haproxy.Balance{}, // пусто, должно заполниться leastconn
-		AdvCheck: "",
+		Name:          backendName,
+		Mode:          "tcp",
+		Balance:       haproxy.Balance{}, // пусто, должно заполниться leastconn
+		AdvCheck:      "",
 		DefaultServer: haproxy.DefaultServer{},
 	}
 
@@ -317,7 +317,7 @@ func TestClient_GetBackendServers(t *testing.T) {
 
 	servers, err := client.GetBackendServers(context.Background(), backendName)
 	require.NoError(t, err)
-    serversSlice := *servers
+	serversSlice := *servers
 	require.Len(t, serversSlice, 2)
 	require.Equal(t, "server-1", serversSlice[0].Name)
 	require.Equal(t, "10.0.0.1", serversSlice[0].Address)

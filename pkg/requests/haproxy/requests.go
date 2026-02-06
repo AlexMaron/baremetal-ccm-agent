@@ -28,7 +28,7 @@ func (c *Client) CreateBackend(ctx context.Context, request *BackendRequest) err
 		return err
 	}
 
-    log.Printf("After normalize: backend.Balance.Algorithm=%q", request.Balance.Algorithm)
+	log.Printf("After normalize: backend.Balance.Algorithm=%q", request.Balance.Algorithm)
 
 	body := request
 

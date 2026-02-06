@@ -81,7 +81,7 @@ type DefaultServer struct {
 }
 
 type BackendRequest struct {
-	Name string `json:"name"` // Имя бэкенда
+	Name string `json:"name"`           // Имя бэкенда
 	Mode string `json:"mode,omitempty"` // Режим работы (tcp, http)
 
 	// Определяет алгоритм балансировки нагрузки для бэкенда.
